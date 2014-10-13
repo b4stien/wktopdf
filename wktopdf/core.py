@@ -1,26 +1,76 @@
 # -*- coding: utf-8 -*-
+import six
+
+from wktopdf import logger
 from wktopdf.ffi import ffi, C
+
+default_object_settings = {
+    'web.defaultEncoding': 'utf-8',
+}
+
+
+class UnprocessedWebkitPdf(object):
+
+    _html_content = None
+    _webpage_url = None
+
+    def __init__(self, global_settings=None, object_settings=None):
+        self._gs = C.wkhtmltopdf_create_global_settings()
+        self._os = C.wkhtmltopdf_create_object_settings()
+        self._converter = C.wkhtmltopdf_create_converter(self._gs)
+
+        C.wkhtmltopdf_set_object_setting(self._os, 'web.defaultEncoding', 'utf-8')
+
+    def set_url(self, webpage_url):
+        self._webpage_url = webpage_url
+        C.wkhtmltopdf_set_object_setting(self._os, 'page', self._webpage_url)
+
+    def set_html(self, html_content):
+        if not isinstance(html_content, six.binary_type):
+            raise TypeError('`wktopdf.core.UnprocessedWebkitPdf.set_html()` is'
+                            ' expecting binary data.')
+        self._html_content = html_content
+
+    def process(self):
+        if self._webpage_url is None and self._html_content is None:
+            logger.warning('`wktopdf.core.UnprocessedWebkitPdf.process()` has '
+                           'been called on a content-less instance. See '
+                           '`wktopdf.core.UnprocessedWebkitPdf.set_url()` and '
+                           '`wktopdf.core.UnprocessedWebkitPdf.set_html()` for'
+                           ' ways to set content.')
+
+        if self._webpage_url is not None and self._html_content is not None:
+            logger.warning('Both html resource content and resource url has '
+                           'been set on this '
+                           '`wktopdf.core.UnprocessedWebkitPdf` instance. This'
+                           ' is probably not what you wanted to do.')
+
+        if self._html_content is not None:
+            data = self._html_content
+        else:
+            data = ffi.NULL
+
+        C.wkhtmltopdf_add_object(self._converter, self._os, data)
+        C.wkhtmltopdf_convert(self._converter)
+
+        cstr = ffi.new('unsigned char **')
+        bytes_len = C.wkhtmltopdf_get_output(self._converter, cstr)
+        bytes = ffi.buffer(cstr[0], bytes_len)
+
+        C.wkhtmltopdf_destroy_converter(self._converter)
+
+        return WebkitPdf(bytes, bytes_len)
 
 
 class WebkitPdf(object):
 
-    def __init__(self, url=None, html=None):
-        wkhtml_gs = C.wkhtmltopdf_create_global_settings()
-        wkhtml_os = C.wkhtmltopdf_create_object_settings()
-        wkhtml_converter = C.wkhtmltopdf_create_converter(wkhtml_gs)
+    bytes_len = None
+    bytes = None
 
-        if url:
-            C.wkhtmltopdf_set_object_setting(wkhtml_os, 'page', url)
-            C.wkhtmltopdf_add_object(wkhtml_converter, wkhtml_os, ffi.NULL)
-        elif html:
-            C.wkhtmltopdf_add_object(wkhtml_converter, wkhtml_os, html)
-        else:
-            raise AttributeError('No content has been given.')
+    def __init__(self, bytes, bytes_len):
+        self.bytes = bytes
+        self.bytes_len = bytes_len
 
-        C.wkhtmltopdf_convert(wkhtml_converter)
-
-        cstr = ffi.new('unsigned char **')
-        self.bytes_len = C.wkhtmltopdf_get_output(wkhtml_converter, cstr)
-        self.bytes = ffi.buffer(cstr[0], self.bytes_len)
-
-        C.wkhtmltopdf_destroy_converter(wkhtml_converter)
+    def save_to_file(self, filename):
+        with open(filename, 'wb') as f:
+            f.write(self.bytes)
