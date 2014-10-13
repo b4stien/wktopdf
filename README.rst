@@ -8,7 +8,7 @@ Pypy, and is released under the MIT license.
 It aims at providing a (more) convenient way to generate PDF files from HTML
 resources. A mandatory code sample:
 
-.. code-block::
+.. code-block:: pycon
     >>> pdf = wktopdf.from_html('<h1>Hello world!</h1>')
     >>> pdf.bytes_len
     5876
