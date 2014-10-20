@@ -11,10 +11,9 @@ resources. A mandatory code sample:
 .. code-block:: pycon
 
     >>> pdf = wktopdf.from_html('<h1>Hello world!</h1>')
-    >>> pdf.bytes_len
-    5876
     >>> pdf.bytes
     ...
+    >>> pdf.save_to_file('hello_world.pdf')
 
 Library status
 --------------
