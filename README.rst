@@ -3,7 +3,7 @@ wktopdf - wkhtmltopdf python bindings
 
 wktopdf is a set of Python bindings to the `whtmltopdf
 <http://wkhtmltopdf.org/>`_ C library. wktopdf works with Python 2&3 as well as
-Pypy, and is released under the MIT license.
+PyPy, and is released under the MIT license.
 
 It aims at providing a (more) convenient way to generate PDF files from HTML
 resources. A mandatory code sample:
