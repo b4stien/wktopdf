@@ -1,5 +1,5 @@
-wktopdf - Python bindings for wkhtmltopdf
-=========================================
+wktopdf - wkhtmltopdf python bindings
+=====================================
 
 wktopdf is a set of Python bindings to the `whtmltopdf
 <http://wkhtmltopdf.org/>`_ C library. wktopdf works with Python 2&3 as well as
