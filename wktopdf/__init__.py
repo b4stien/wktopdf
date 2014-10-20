@@ -14,6 +14,9 @@ except ImportError:
 
 logger.addHandler(NullHandler())
 
+class WktopdfError(StandardError):
+    """An error happened"""
 
-from wktopdf.core import UnprocessedWebkitPdf, WebkitPdf
+
+from wktopdf.core import UnprocessedWebkitPdf
 from wktopdf.api import from_html, from_url

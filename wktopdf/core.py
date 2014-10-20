@@ -1,28 +1,43 @@
 # -*- coding: utf-8 -*-
 import six
 
-from wktopdf import logger
+from wktopdf import WktopdfError, settings
 from wktopdf.ffi import ffi, C
-
-default_object_settings = {
-    'web.defaultEncoding': 'utf-8',
-}
 
 
 class UnprocessedWebkitPdf(object):
-
-    _html_content = None
-    _webpage_url = None
 
     def __init__(self):
         self._gs = C.wkhtmltopdf_create_global_settings()
         self._os = C.wkhtmltopdf_create_object_settings()
         self._converter = C.wkhtmltopdf_create_converter(self._gs)
 
-        C.wkhtmltopdf_set_object_setting(self._os, 'web.defaultEncoding', 'utf-8')
+    def set(self, setting, value):
+        if setting in settings.GLOBAL_SETTINGS:
+            set_result = self._global_set(setting, value)
+
+        elif setting in settings.OBJECT_SETTINGS:
+            set_result = self._object_set(setting, value)
+
+        else:
+            raise WktopdfError('`{}` is not a recognized setting.'.format(setting))
+
+        if set_result != 1:
+            raise WktopdfError('An error happened while trying to set `{}` to '
+                               '"{}".'.format(setting, value))
+
+    def set_dict(self, settings_dict):
+        for setting, value in settings_dict.items():
+            self.set(setting, value)
+
+    def _object_set(self, setting, value):
+        return C.wkhtmltopdf_set_object_setting(self._os, setting, value)
+
+    def _global_set(self, setting, value):
+        return C.wkhtmltopdf_set_global_setting(self._gs, setting, value)
 
     def process_url(self, url):
-        C.wkhtmltopdf_set_object_setting(self._os, 'page', self._webpage_url)
+        C.wkhtmltopdf_set_object_setting(self._os, 'page', url)
         C.wkhtmltopdf_add_object(self._converter, self._os, ffi.NULL)
         return self._process()
 
@@ -37,21 +52,9 @@ class UnprocessedWebkitPdf(object):
         C.wkhtmltopdf_convert(self._converter)
 
         cstr = ffi.new('unsigned char **')
-        bytes_len = C.wkhtmltopdf_get_output(self._converter, cstr)
-        bytes = ffi.buffer(cstr[0], bytes_len)
+        pdf_bytes_len = C.wkhtmltopdf_get_output(self._converter, cstr)
+        pdf_bytes = ffi.buffer(cstr[0], pdf_bytes_len)
 
         C.wkhtmltopdf_destroy_converter(self._converter)
 
-        return WebkitPdf(bytes)
-
-
-class WebkitPdf(object):
-
-    bytes = None
-
-    def __init__(self, bytes):
-        self.bytes = bytes
-
-    def save_to_file(self, filename):
-        with open(filename, 'wb') as f:
-            f.write(self.bytes)
+        return pdf_bytes

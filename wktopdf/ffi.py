@@ -2,15 +2,19 @@
 import atexit
 import codecs
 import inspect
-from os import path
+from os import getenv, path
 
 import cffi
 
 
-wkhtmltopdf_path = '/usr/local'
+local_path = '/usr/local'
 
-include_dirs = [path.join(wkhtmltopdf_path, 'include/wkhtmltox')]
-library_dirs = [path.join(wkhtmltopdf_path, 'lib')]
+include_dir = getenv('WKTOPDF_INCLUDE')
+if include_dir is None:
+	include_dir = path.join(local_path, 'include/wkhtmltox')
+library_dir = getenv('WKTOPDF_LIB')
+if library_dir is None:
+	library_dir = path.join(local_path, 'lib')
 
 ffi = cffi.FFI()
 
@@ -23,8 +27,8 @@ with codecs.open(decl_path, 'r', 'utf-8') as header:
 C = ffi.verify(
     '#include <pdf.h>',
     libraries=['wkhtmltox'],
-    include_dirs=include_dirs,
-    library_dirs=library_dirs,
+    include_dirs=[include_dir],
+    library_dirs=[library_dir],
 )
 
 C.wkhtmltopdf_init(0)
